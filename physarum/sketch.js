@@ -17,30 +17,37 @@ let additional_random_lifespan = 100
 let spawn_chance = 0.01
 
 // How much to randomize a spawned actor's direction, relative to its parent.
-let spawn_direction_randomization = 0.3
+let spawn_direction_randomization = Math.PI / 6
 
 // How much an actor should just wander around
-let random_wander = 0.1
+let random_wander = Math.PI / 3
 
 // How narrow is an actor's view of the world (bigger is narrower)
 let narrowness = 6
 
 // How far ahead does an actor look
-let look_distance = 10
+let look_distance = 9
 
 // How quickly does the board fade. Between 0 and 255
-let fade_speed = 8
+let fade_speed = 3
 
 // How intense is an actor's color blended. Between 0 and 255
-let actor_blend_amount = 196
+let actor_blend_amount = 255
+
+// how thick a line the actors draw
+let stroke_weight = 1
 
 // Can set this to nil and will default to random placement. The
 // function specified here will define variables for arranging
 // the initial layout (margins, spacing, etc).
 let arrangement = rectangleActor
 
+let speed = 0.0
+let max_speed = 1
+let acceleration = 0.002
+
 let save_animation = true
-let animation_frames = 240
+let animation_frames = 480
 let save_interval = 1
 
 function getLifespan() {
@@ -48,10 +55,10 @@ function getLifespan() {
 }
 
 function rectangleActor(idx) {
-  let margin = 0.3
+  let margin = 0.25
 
   var a = randomActor(idx)
-  var actors_per_side = sqrt(seed_actors)
+  var actors_per_side = seed_actors / 4 //sqrt(seed_actors)
   var x = idx % actors_per_side
   var y = Math.floor(idx / actors_per_side)
 
@@ -61,15 +68,34 @@ function rectangleActor(idx) {
   var spacing_x = ((1 - margin * 2) * width) / actors_per_side
   var spacing_y = ((1 - margin * 2) * height) / actors_per_side
 
-  a.x = offset_x + x * spacing_x
-  a.y = offset_y + y * spacing_y
-
+  if (idx < seed_actors / 4) {
+    a.x = offset_x + x * spacing_x
+    a.y = offset_y
+    a.direction = Math.PI / 2
+    a.color = {r: 255, g: 0, b: 0}
+  } else if (idx < seed_actors / 2) {
+    a.x = width - offset_x
+    a.y = offset_y + x * spacing_y
+    a.direction = Math.PI
+    a.color = {r: 0, g: 255, b: 0}
+  } else if (idx < (seed_actors * 3/4)) {
+    a.x = width - offset_x - x * spacing_x
+    a.y = height - offset_y
+    a.direction = Math.PI + Math.PI / 2
+    a.color = {r: 0, g: 0, b: 255}
+  } else {
+    a.x = offset_x
+    a.y = height - offset_y - x * spacing_y
+    a.direction = 0
+    a.color = {r: 255, g: 255, b: 0}
+  }
+/*
   a.color = {
     r: 255,
     g: 255,
     b: 255
   }
-
+*/
   return a
 }
 
@@ -77,7 +103,7 @@ let c
 let capturer
 
 function setup() {
-  c = createCanvas(256, 256); //windowWidth, windowHeight);
+  c = createCanvas(512, 512) //windowWidth, windowHeight);
   for (i = 0; i < max_actors; i++) {
     createActor(i, arrangement)
   }
@@ -138,6 +164,10 @@ function generation() {
     capturer.start()      
   }
 
+  if (speed < max_speed) {
+    speed += acceleration
+  }
+
   for (var i = 0; i < actors.length; i++) {
     if (actors[i].lifespan <= 1) {
       if (Math.random() < spawn_chance) {
@@ -152,8 +182,8 @@ function generation() {
       }
     } else {
       if (actors[i].lifespan > 1) {
-        actors[i].x += cos(actors[i].direction)
-        actors[i].y += sin(actors[i].direction)
+        actors[i].x += cos(actors[i].direction) * speed
+        actors[i].y += sin(actors[i].direction) * speed
     
         if (actors[i].x > width || actors[i].y > height || actors[i].x < 0 || actors[i].y < 0) {
           new_actor = spawnActor()
@@ -212,7 +242,7 @@ function draw() {
   rect(0, 0, width, height)
 
   generation()
-  //strokeWeight(5)
+  strokeWeight(stroke_weight)
   prev_x = actors[0].x
   prev_y = actors[0].y
   actors.forEach(actor => {
