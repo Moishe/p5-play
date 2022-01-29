@@ -2,6 +2,8 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
 
   background(192)
+  strokeWeight(0)
+
   for (let k = 0; k < 5; k++) {
     let layer_line = [
       createVector(0, height / 4 + Math.random() * height / 4 + ((k / 3) * height / 4)),
@@ -12,14 +14,15 @@ function setup() {
     for (let i = 0; i < Math.floor(Math.random() * 4) + 3; i++) {
       let new_line = []
       for (let j = 0; j < current_line.length - 1; j++) {
-        new_triplet = fracture_line([current_line[j], current_line[j + 1]])
+        new_triplet = fracture_line(
+          [current_line[j], current_line[j + 1]])
         new_line = new_line.concat(new_triplet)
       }
       current_line = Array.from(new_line)
     }
   
-    strokeWeight(0)
-    let color = p5.Vector.lerp(createVector(192, 192, 192), createVector(16, 164, 64), (k + 1) / 3)
+    let color = p5.Vector.lerp(createVector(192, 192, 192),
+                               createVector(16, 164, 64), (k + 1) / 3)
     fill(color.x, color.y, color.z)
     beginShape();
     for (let i = 0; i < current_line.length; i++) {
@@ -48,7 +51,8 @@ function fracture_line(l) {
   
   let midPoint = p5.Vector.lerp(l[0], l[1], offset)
   
-  midPoint = perp(l, midPoint, p5.Vector.dist(l[0], l[1]) / 10.0 * Math.random())
+  midPoint = perp(l, midPoint, 
+                  p5.Vector.dist(l[0], l[1]) / 8.0 * Math.random())
   
   return [l[0], midPoint, l[1]]
 }
