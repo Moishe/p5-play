@@ -13,11 +13,15 @@ let Director = class {
       return parent.copy()
     } else {
       let actor = {
-        x = width / 2,
-        y = height / 2,
-        lifetime = Math.floor(Math.random() * this.max_age),
-        is_active = true,
-        next_free = -1
+        x: width / 2,
+        y: height / 2,
+        d: 0,
+        v: 0,
+        lifetime: Math.floor(Math.random() * 100),
+        color: 'black',
+        age: 0,
+        is_active: true,
+        next_free: -1
       }
       return actor
     }
@@ -28,9 +32,7 @@ let Director = class {
     actor.y += sin(actor.d) * actor.v
 
     actor.age += 1
-    if (actor.age > actor.lifetime) {
-      return false
-    }
+    return actor.age < actor.lifetime
   }
 
   constructor(max_actors, 
@@ -52,9 +54,9 @@ let Director = class {
       this.actors[i] = this.create_func(this.default_actor)
     }
 
-    for (let i = seed_actors; i < this.max_actors; i++) {
+    for (let i = this.seed_actors; i < this.max_actors; i++) {
       this.actors[i] = {
-        next_free: i == seed_actors ? -1 : i - 1,
+        next_free: i == this.seed_actors ? -1 : i - 1,
         is_active: false
       }
     }
@@ -67,8 +69,9 @@ let Director = class {
         continue
       }
 
-      stroke(this.actors[i].color)
-      point(this.actors[i].x, actors[i].y)
+      stroke(0)
+      strokeWeight(1)
+      point(this.actors[i].x, this.actors[i].y)
 
       if (!this.update_func(this.actors[i])) {
         this.delete_actor(i)
@@ -77,7 +80,7 @@ let Director = class {
   }
 
   delete_actor(index) {
-    actor[index] = {
+    this.actors[index] = {
       is_active: false,
       next_free: this.next_free
     }
@@ -87,11 +90,28 @@ let Director = class {
 
 let director
 function setup() {
-  debugger
-  director = new Director(1000, 10, 100)
+  createCanvas(windowWidth, windowHeight);
+  director = new Director(
+    1000, // max actors
+    10,   // seed actors
+    100,  // max age
+    (parent) => {
+      actor = Director.default_create_func(parent)
+      actor.d = Math.random() * Math.PI * 2
+      return actor
+    },
+    (actor) => {
+      let result = Director.default_update_func(actor)
+      if (result) {
+        actor.v = max(1, actor.v + 0.01)
+        actor.d += (Math.random() - 0.5) * 0.1
+      }
+      return result
+    })
   director.initialize()
 }
 
 function draw() {
+  //background(255)
   director.process_and_draw()
 }
