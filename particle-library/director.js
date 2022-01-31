@@ -23,7 +23,6 @@ let Director = class {
           d: 0,
           v: 0,
           lifetime: Math.floor(Math.random() * max_age) + min_age,
-          color: 'black',
           age: 0,
           is_active: true,
           generation_created: 0,
