@@ -7,7 +7,6 @@ let Director = class {
   actors = []
   next_free = -1
 
-
   constructor(max_actors,
     seed_actors,
     max_age,
@@ -59,6 +58,16 @@ let Director = class {
     this.next_free = index
   }
 
+  /*
+   * Override this to change the properties of newly-created actors. For instance,
+   * you may want to randomly distribute actors, or you may want to give them initial
+   * velocities or directions. You may also want to add other properties to your
+   * actors, such as color or size.
+   *
+   * Note that you must preserve the properties assigned below for the Director to
+   * work correctly.
+   */
+
   create(parent = null) {
     if (parent) {
       let actor = Object.assign({}, parent)
@@ -79,6 +88,15 @@ let Director = class {
     }
   }
 
+  /*
+   * Updates the actor's position based on its velocity and direction.
+   * Returns false if the actor should be destroyed.
+   *
+   * Override this method to change an actor's behavior, eg. for a
+   * physarum simulation, you could modify the actor's direction based
+   * on the pixels around it.
+   */
+
   update(actor) {
     actor.x += cos(actor.d) * actor.v
     actor.y += sin(actor.d) * actor.v
@@ -90,6 +108,16 @@ let Director = class {
       actor.x < width &&
       actor.y < height
   }
+
+  /*
+   * Spawn a new actor from an existing actor.
+   * Returns the new actor.
+   *
+   * You can override this method to change how a new actor inherits
+   * properties from its parent. Note, like create, that you must=
+   * preserve the existence of the default properties, though you can
+   * change their values.
+   */
 
   spawn(actor) {
     if (this.next_free != -1) {
@@ -111,11 +139,20 @@ let Director = class {
     return null
   }
 
+  /*
+   * Draw an actor. Override this to change how actors appear on the screen.
+   */
+
   draw(actor) {
     stroke(0, 0, 0, 255 - Math.floor(256 * (actor.age / actor.lifetime)))
     strokeWeight(0.5)
     point(actor.x, actor.y)
   }
+
+  /*
+   * Decide whether an actor should spawn a child actor. You can override this
+   * to change spawning behavior based on the actor's properties.
+   */
 
   should_spawn(actor) {
     return Math.random() < 0.1
