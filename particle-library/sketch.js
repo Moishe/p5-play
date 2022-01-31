@@ -4,6 +4,9 @@ let Director = class {
   max_age
   min_age
   create_func
+  update_func
+  should_spawn_func
+  draw_func
   default_actor
 
   actors = []
@@ -42,18 +45,26 @@ let Director = class {
       actor.y < height
   }
 
+  static default_draw_func(actor) {
+    stroke(0, 0, 0, 255 - Math.floor(256 * (actor.age / actor.lifetime)))
+    strokeWeight(0.5)
+    point(actor.x, actor.y)
+
+  }
+
   static default_should_spawn_func(actor) {
-    return Math.random() > actor.age / actor.lifetime
+    return Math.random() < actor.age / actor.lifetime
     //return Math.floor(actor.lifetime / 2) == actor.age
   }
 
-  constructor(max_actors, 
-              seed_actors, 
+  constructor(max_actors,
+              seed_actors,
               max_age,
               min_age,
               create_func=Director.default_create_func,
               update_func=Director.default_update_func,
               should_spawn_func=Director.default_should_spawn_func,
+              draw_func=Director.default_draw_func,
               default_actor=Director.default_actor_template) {
     this.max_actors = max_actors
     this.seed_actors = seed_actors
@@ -62,6 +73,7 @@ let Director = class {
     this.create_func = create_func
     this.update_func = update_func
     this.should_spawn_func = should_spawn_func
+    this.draw_func = draw_func
     this.default_actor = default_actor
   }
 
@@ -80,15 +92,12 @@ let Director = class {
   }
 
   process_and_draw(generation) {
-    loadPixels()
     for (let i = 0; i < this.actors.length; i++) {
       if (!this.actors[i].is_active || this.actors[i].generation_created == generation) {
         continue
       }
 
-      stroke(0, 0, 0, 255 - Math.floor(256 * (this.actors[i].age / this.actors[i].lifetime)))
-      strokeWeight(0.1)
-      point(this.actors[i].x, this.actors[i].y)
+      this.draw_func(this.actors[i])
 
       if (!this.update_func(this.actors[i])) {
         this.delete_actor(i)
@@ -128,13 +137,19 @@ let Director = class {
 }
 
 let director
+let capturer
+let save_animation = true
+let max_frames = 60 * 10
+
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  //createCanvas(windowWidth, windowHeight);
+  createCanvas(1024, 1024)
+  background(255)
   director = new Director(
-    10000,  // max actors
-    10,   // seed actors
+    5000, // max actors
+    1000,  // seed actors
     1000,  // max age
-    200,  // min_age
+    100,   // min_age
     (min_age, max_age, parent) => {
       actor = Director.default_create_func(min_age, max_age, parent)
       actor.x = Math.random() * width
@@ -148,33 +163,50 @@ function setup() {
         actor.v = min(1, actor.v + 0.1)
 
         let dirs = [-Math.PI / 3, 0, Math.PI / 3]
-        let big_c = 0
+        let big_c = 255
         let dir = actor.d
         for (let i = 0; i < dirs.length; i++) {
           let look_x = actor.x + cos(dirs[i] + actor.d) * 5
           let look_y = actor.y + sin(dirs[i] + actor.d) * 5
-          stroke(128, 32, 0, 0.5)
-          strokeWeight(1)
-          point(look_x, look_y)
-          let c = get(look_x, look_y)[3]
-          if (c > big_c) {
+          let c = get(look_x, look_y)[0]
+          if (c < big_c) {
             c = big_c
             dir = dirs[i] + actor.d
           }
         }
 
-        actor.d = lerp(actor.d, dir, 0.9)
-        actor.d += (Math.random() - 0.5) * 0.1
+        actor.d = lerp(actor.d, dir, Math.random())
+        actor.d += (Math.random() - 0.5) * 0.5
       }
       return result
     })
   director.initialize()
+
+  if (save_animation) {
+    capturer = new CCapture( { format: 'png' } );
+  }
 }
 
 let generation = 0
 function draw() {
+  if (generation == 0 && save_animation) {
+    capturer.start()
+  }
+
+  if (generation > max_frames) {
+    noLoop()
+    if (save_animation) {
+      capturer.stop()
+      capturer.save()
+    }
+  }
+
   director.process_and_draw(generation)
   generation += 1
+
+  if (save_animation) {
+    capturer.capture(document.getElementById('defaultCanvas0'));
+  }
 }
 
 function mousePressed() {
