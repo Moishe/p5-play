@@ -9,7 +9,7 @@ function setup() {
   background(255)
   director = new Director(
     5000, // max actors
-    1000,  // seed actors
+    1,  // seed actors
     1000,  // max age
     100,   // min_age
     (min_age, max_age, parent) => {
@@ -41,7 +41,11 @@ function setup() {
         actor.d += (Math.random() - 0.5) * 0.1
       }
       return result
-    })
+    },
+    (actor) => {
+      return Math.random() < actor.age / actor.lifetime
+    }
+  )
   director.initialize()
 
   if (save_animation) {

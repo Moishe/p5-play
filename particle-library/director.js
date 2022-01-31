@@ -7,7 +7,6 @@ let Director = class {
     update_func
     should_spawn_func
     draw_func
-    default_actor
 
     actors = []
     next_free = -1
@@ -52,8 +51,7 @@ let Director = class {
     }
 
     static default_should_spawn_func(actor) {
-      return Math.random() < actor.age / actor.lifetime
-      //return Math.floor(actor.lifetime / 2) == actor.age
+      return Math.random() < 0.1
     }
 
     constructor(max_actors,
@@ -63,8 +61,7 @@ let Director = class {
                 create_func=Director.default_create_func,
                 update_func=Director.default_update_func,
                 should_spawn_func=Director.default_should_spawn_func,
-                draw_func=Director.default_draw_func,
-                default_actor=Director.default_actor_template) {
+                draw_func=Director.default_draw_func) {
       this.max_actors = max_actors
       this.seed_actors = seed_actors
       this.max_age = max_age
@@ -73,12 +70,11 @@ let Director = class {
       this.update_func = update_func
       this.should_spawn_func = should_spawn_func
       this.draw_func = draw_func
-      this.default_actor = default_actor
     }
 
     initialize() {
       for (let i = 0; i < this.seed_actors; i++) {
-        this.actors[i] = this.create_func(this.min_age, this.max_age, this.default_actor)
+        this.actors[i] = this.create_func(this.min_age, this.max_age)
       }
 
       for (let i = this.seed_actors; i < this.max_actors; i++) {
@@ -119,15 +115,18 @@ let Director = class {
 
     spawn_actor(actor) {
       if (this.next_free != -1) {
-        let temp_next_free = this.actors[this.next_free].next_free
         let idx = this.next_free
+        this.next_free = this.actors[idx].next_free
+
         this.actors[idx] = this.create_func(this.min_age, this.max_age, actor)
-        this.actors[idx].next_free = -1
+        this.actors[idx].x = actor.x
+        this.actors[idx].y = actor.y
         this.actors[idx].lifetime = this.min_age + Math.floor(Math.random() * this.max_age)
         this.actors[idx].age = 0
-        this.actors[this.next_free].v = 0
+        this.actors[idx].v = 0
         this.actors[idx].d = actor.d + (Math.random() - 0.5) * Math.PI / 8
-        this.next_free = temp_next_free
+        this.actors[idx].next_free = -1
+
         return this.actors[idx]
       }
     }
