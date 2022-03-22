@@ -24,6 +24,8 @@ let STATE_STRING = [
   "Looking left",
   "Looking ahead",
   "Looking right",
+  "Evaluating brightest",
+  "Moving to brightest",
   "Depositing pheromone",
   "Moving in my new direction"
 ]
@@ -35,8 +37,9 @@ START_LOOK = 0
 LOOK_LEFT = 1
 LOOK_AHEAD = 2
 LOOK_RIGHT = 3
-DEPOSIT = 4
-MOVE = 5
+EVALUATE_BRIGHTNESS = 4
+DEPOSIT = 5
+MOVE = 6
 
 let status_text
 
@@ -133,6 +136,7 @@ class actor {
       this.lookLeft.bind(this),
       this.lookAhead.bind(this),
       this.lookRight.bind(this),
+      this.evaluate.bind(this),
       this.deposit.bind(this),
       this.move.bind(this)
     ]
@@ -153,7 +157,7 @@ class actor {
 
   startLook() {
     this.offsets = this.getOffsets(2.2)
-    this.max_value = 0
+    this.values = [-1,-1,-1]
     let random_heading_idx = Math.floor(random(0, 3))
 
     this.new_x = Math.max(Math.min(this.offsets[random_heading_idx][0], WIDTH - 1), 0)
@@ -184,16 +188,7 @@ class actor {
 
     drawArrow(this.offsets[idx][0], this.offsets[idx][1], this.offsets[idx][2])
 
-    let value = pheromone[x + y * WIDTH]
-    if (value > this.max_value) {
-      this.max_value = value
-      this.new_heading = this.offsets[idx][2]
-      this.new_x = x
-      this.new_y = y
-      this.max_idx = idx
-      return true
-    }
-
+    this.values[idx] = pheromone[x + y * WIDTH]
     return false
   }
 
@@ -209,6 +204,23 @@ class actor {
 
   lookRight() {
     this.look(2)
+    this.state += 1
+  }
+
+  evaluate() {
+    let max_value = -1
+    let max_idx = -1
+    for (let i = 0; i < this.values.length; i++) {
+      if (this.values[i] > max_value) {
+        max_idx = i
+        max_value = this.values[i]
+      }
+    }
+
+    this.new_x = this.offsets[max_idx][0]
+    this.new_y = this.offsets[max_idx][1]
+    this.new_heading = this.offsets[max_idx][2]
+
     this.state += 1
   }
 
