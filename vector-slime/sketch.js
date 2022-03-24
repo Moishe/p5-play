@@ -28,10 +28,14 @@ class MoldDirector extends Director {
 
       actor.d = lerp(actor.d, dir, Math.random())
       actor.d += (Math.random() - 0.5) * PI / 16
-      
+
       actor.path.push([actor.x, actor.y])
     }
     return result
+  }
+
+  default_lifetime() {
+    return 1000
   }
 
   should_spawn(actor) {
@@ -47,13 +51,16 @@ class MoldDirector extends Director {
   spawn(actor) {
     let new_actor = super.spawn(actor)
     if (new_actor) {
+      new_actor.path = []
       new_actor.d = actor.d + (Math.random() - 0.5) * PI
       new_actor.v = actor.v
-      new_actor.lifetime = get(new_actor.x, new_actor.y)[0]
+      new_actor.lifetime = 1000 //get(new_actor.x, new_actor.y)[0]
     }
     return new_actor
   }
 }
+
+var SVG_TRANSLATE
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -63,14 +70,36 @@ function setup() {
     1       // seed actors
   )
   director.initialize()
+
+  SVG_TRANSLATE = (210 * SVG_MM) / max(windowWidth, windowHeight)
+  console.log(windowWidth, windowHeight)
+  console.log(SVG_TRANSLATE)
 }
 
 var generation = 0
 function draw() {
   director.process_and_draw()
   generation += 1
-  if (generation > 100) {
-    console.log(director.actors[0].path)
+  if (generation > 1000) {
+    beginSvg()
+    for (let i = 0; i < director.actors.length; i++) {
+      beginSvgPath()
+      let actor = director.actors[i]
+      if (!actor || !actor.path) {
+        continue
+      }
+      for (let j = 0; j < actor.path.length; j++) {
+        let x = (actor.path[j][0] - (windowWidth / 2)) * SVG_TRANSLATE + SVG_WIDTH / 2 * SVG_MM
+        let y = (actor.path[j][1] - (windowHeight / 2)) * SVG_TRANSLATE + SVG_HEIGHT / 2 * SVG_MM
+        if (j == 0) {
+          svgMove(x, y)
+        } else {
+          svgLine(x, y)
+        }
+      }
+      endSvgPath()
+    }
+    endSvg()
     noLoop()
   }
 }
