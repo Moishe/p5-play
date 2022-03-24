@@ -1,12 +1,13 @@
 let LOOK_DISTANCE = 4
 let RANDOM_WANDER = Math.PI / 12
-let BLUR_OPACITY = 32
-let BLUR_RADIUS = 0
-let POINT_OPACITY = 16
-let CENTER_ACTORS = false
+let BLUR_OPACITY = 4
+let BLUR_RADIUS = 3
+let POINT_OPACITY = 128
+let CENTER_ACTORS = true
+let VISION_SWEEP = Math.PI / 3
 
 let MAX_ACTORS = 200
-let START_ACTORS = 21
+let START_ACTORS = 1
 
 let SIMULATION_GENERATIONS = 1000
 
@@ -35,7 +36,7 @@ class MoldDirector extends Director {
   update(actor) {
     let result = super.update(actor)
     if (result) {
-      let dirs = [-Math.PI / 4, 0, Math.PI / 4]
+      let dirs = [-VISION_SWEEP, 0, VISION_SWEEP]
       let max_c = 255
       let dir = actor.d
       for (let i = 0; i < dirs.length; i++) {
@@ -54,7 +55,7 @@ class MoldDirector extends Director {
         }
       }
 
-      actor.d = lerp(actor.d, dir, 0.6)
+      actor.d = lerp(actor.d, dir, 0.9)
       actor.d += (Math.random() - 0.5) * RANDOM_WANDER
 
       actor.path.push([actor.x, actor.y])

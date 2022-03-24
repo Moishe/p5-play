@@ -33,5 +33,5 @@ function endSvgPath() {
 
 function endSvg() {
   SVG_OUTPUT_STRING += SVG_FOOTER
-  save([SVG_OUTPUT_STRING], 'vector-slime-svg.svg')
+  //save([SVG_OUTPUT_STRING], 'vector-slime-svg.svg')
 }
