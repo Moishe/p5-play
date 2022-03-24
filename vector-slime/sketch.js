@@ -1,5 +1,20 @@
+let LOOK_DISTANCE = 4
+let RANDOM_WANDER = Math.PI / 12
+let BLUR_OPACITY = 32
+let BLUR_RADIUS = 0
+let POINT_OPACITY = 16
+let CENTER_ACTORS = false
+
+let MAX_ACTORS = 200
+let START_ACTORS = 21
+
+let SIMULATION_GENERATIONS = 1000
+
 let director
 
+var old_paths = []
+
+var anyCreated = false
 class MoldDirector extends Director {
   create(parent) {
     let actor = super.create(parent)
@@ -7,6 +22,13 @@ class MoldDirector extends Director {
     actor.v = 1
     actor.lifetime = 2000
     actor.path = []
+    if (CENTER_ACTORS) {
+      actor.x = windowWidth / 2
+      actor.y = windowHeight / 2
+    } else {
+      actor.x = random(0, windowWidth)
+      actor.y = random(0, windowHeight)
+    }
     return actor
   }
 
@@ -17,19 +39,31 @@ class MoldDirector extends Director {
       let max_c = 255
       let dir = actor.d
       for (let i = 0; i < dirs.length; i++) {
-        let look_x = actor.x + cos(dirs[i] + actor.d) * 5
-        let look_y = actor.y + sin(dirs[i] + actor.d) * 5
+        var dirIdx
+        if (Math.random() < 0.5) {
+          dirIdx = i
+        } else {
+          dirIdx = dirs.length - (i + 1)
+        }
+        let look_x = actor.x + cos(dirs[dirIdx] + actor.d) * LOOK_DISTANCE
+        let look_y = actor.y + sin(dirs[dirIdx] + actor.d) * LOOK_DISTANCE
         let c = get(look_x, look_y)[0]
         if (c < max_c) {
           c = max_c
-          dir = dirs[i] + actor.d
+          dir = dirs[dirIdx] + actor.d
         }
       }
 
-      actor.d = lerp(actor.d, dir, Math.random())
-      actor.d += (Math.random() - 0.5) * PI / 16
+      actor.d = lerp(actor.d, dir, 0.6)
+      actor.d += (Math.random() - 0.5) * RANDOM_WANDER
 
       actor.path.push([actor.x, actor.y])
+
+      let food_amt = get(actor.x, actor.y)[0]
+      if (food_amt < 64) {
+        result = false
+      }
+
     }
     return result
   }
@@ -43,18 +77,26 @@ class MoldDirector extends Director {
   }
 
   draw(actor) {
-    stroke(0, 0, 0, 128)
-    strokeWeight(0.5)
+    stroke(0, 0, 0, POINT_OPACITY)
+    strokeWeight(1.0)
     point(actor.x, actor.y)
+    stroke(0, 0, 0, BLUR_OPACITY)
+    for (let r = 0; r < BLUR_RADIUS; r++) {
+      noFill()
+      circle(actor.x, actor.y, r)
+    }
   }
 
   spawn(actor) {
     let new_actor = super.spawn(actor)
     if (new_actor) {
+      if (actor.path) {
+        old_paths.push(actor.path)
+      }
       new_actor.path = []
       new_actor.d = actor.d + (Math.random() - 0.5) * PI
       new_actor.v = actor.v
-      new_actor.lifetime = 1000 //get(new_actor.x, new_actor.y)[0]
+      new_actor.lifetime = get(new_actor.x, new_actor.y)[0]
     }
     return new_actor
   }
@@ -66,8 +108,8 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   background(255)
   director = new MoldDirector(
-    1000,   // max actors
-    1       // seed actors
+    MAX_ACTORS,
+    START_ACTORS
   )
   director.initialize()
 
@@ -76,28 +118,35 @@ function setup() {
   console.log(SVG_TRANSLATE)
 }
 
+function addActorPath(path) {
+  beginSvgPath()
+  for (let j = 0; j < path.length; j++) {
+    let x = (path[j][0] - (windowWidth / 2)) * SVG_TRANSLATE + SVG_WIDTH / 2 * SVG_MM
+    let y = (path[j][1] - (windowHeight / 2)) * SVG_TRANSLATE + SVG_HEIGHT / 2 * SVG_MM
+    if (j == 0) {
+      svgMove(x, y)
+    } else {
+      svgLine(x, y)
+    }
+  }
+  endSvgPath()
+}
+
 var generation = 0
 function draw() {
   director.process_and_draw()
   generation += 1
-  if (generation > 1000) {
+  if (generation > SIMULATION_GENERATIONS) {
     beginSvg()
     for (let i = 0; i < director.actors.length; i++) {
-      beginSvgPath()
       let actor = director.actors[i]
       if (!actor || !actor.path) {
         continue
       }
-      for (let j = 0; j < actor.path.length; j++) {
-        let x = (actor.path[j][0] - (windowWidth / 2)) * SVG_TRANSLATE + SVG_WIDTH / 2 * SVG_MM
-        let y = (actor.path[j][1] - (windowHeight / 2)) * SVG_TRANSLATE + SVG_HEIGHT / 2 * SVG_MM
-        if (j == 0) {
-          svgMove(x, y)
-        } else {
-          svgLine(x, y)
-        }
-      }
-      endSvgPath()
+      addActorPath(actor.path)
+    }
+    for (let i = 0; i < old_paths.length; i++) {
+      addActorPath(old_paths[i])
     }
     endSvg()
     noLoop()

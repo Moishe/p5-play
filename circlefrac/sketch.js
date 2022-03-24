@@ -1,11 +1,13 @@
 let radii = []
-let recursion_depth = 11
+let recursion_depth = 10
 let point_count = 2 ** recursion_depth
 var radius = 256
 
-let BORDER = 20
-let LAYERS = 100
-let MAX_DEPTH = 11
+var svg_xlat
+
+let BORDER = 40
+let LAYERS = 300
+let MAX_DEPTH = 9
 let RANDOM_RADIUS_DIVISOR = 0.1
 let SHOULD_LOOP = false
 let SHOULD_EXPAND = true
@@ -35,10 +37,14 @@ function beginSvgPath() {
 }
 
 function svgMove(x, y) {
+  x *= svg_xlat
+  y *= svg_xlat
   CURRENT_SVG_PATH += ` M ${x} ${y}`
 }
 
 function svgLine(x, y) {
+  x *= svg_xlat
+  y *= svg_xlat
   CURRENT_SVG_PATH += ` L ${x} ${y}`
 }
 
@@ -54,11 +60,14 @@ function endSvg() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+
   radius = (Math.min(windowWidth, windowHeight) - BORDER * 2) / 2
   for (let i = 0; i < point_count; i++) {
     radii[i] = 1 // radius * (i / point_count)
   }
   //frameRate(1)
+
+  svg_xlat = (Math.min(SVG_WIDTH, SVG_HEIGHT) * SVG_MM) / Math.min(windowWidth, windowHeight)
 }
 
 function interpolateNewRadius(start, count) {
