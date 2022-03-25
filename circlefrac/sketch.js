@@ -1,16 +1,13 @@
-let radii = []
-let recursion_depth = 10
-let point_count = 2 ** recursion_depth
-var radius = 256
-
-var svg_xlat
-
+let RECURSION_DEPTH = 8
+let POINT_COUNT = 2 ** RECURSION_DEPTH
 let BORDER = 40
-let LAYERS = 300
-let MAX_DEPTH = 9
-let RANDOM_RADIUS_DIVISOR = 0.1
+let LAYERS = 100
+let MAX_DEPTH = RECURSION_DEPTH
+let RANDOM_RADIUS_DIVISOR = 8
 let SHOULD_LOOP = false
-let SHOULD_EXPAND = true
+let SHOULD_EXPAND = false
+let SHOULD_INTERPOLATE = true
+let INTERPOLATE_DIVISOR = 1
 
 let DEBUG_OUTPUT = false
 
@@ -27,6 +24,11 @@ let SVG_FOOTER = '</svg>\n'
 let SVG_OUTPUT_STRING = ''
 
 let CURRENT_SVG_PATH = ''
+
+let radii = []
+var radius = 256
+
+var svg_xlat
 
 function beginSvg() {
   SVG_OUTPUT_STRING = SVG_HEADER
@@ -55,15 +57,19 @@ function endSvgPath() {
 
 function endSvg() {
   SVG_OUTPUT_STRING += SVG_FOOTER
-  save([SVG_OUTPUT_STRING], 'p5-svg.svg')
+  //save([SVG_OUTPUT_STRING], 'p5-svg.svg')
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
   radius = (Math.min(windowWidth, windowHeight) - BORDER * 2) / 2
-  for (let i = 0; i < point_count; i++) {
-    radii[i] = 1 // radius * (i / point_count)
+  for (let i = 0; i < POINT_COUNT; i++) {
+    if (DEBUG_OUTPUT) {
+      radii[i] = radius
+    } else {
+      radii[i] = 1
+    }
   }
   //frameRate(1)
 
@@ -83,12 +89,12 @@ function interpolateNewRadius(start, count) {
       idx = getIndexWithOffset(start, i)
     }
     let current = radii[idx]
-    xybefore = getPoint(idx)
+    let xybefore = getPoint(idx)
 
     let fraction = ((abs_count - i) / abs_count)
 
     radii[idx] = lerp(current, goal_r, fraction)
-    xyafter = getPoint(idx)
+    let xyafter = getPoint(idx)
 
     if (DEBUG_OUTPUT) {
       stroke(0)
@@ -99,7 +105,7 @@ function interpolateNewRadius(start, count) {
 }
 
 function getPoint(i, multiplier=1) {
-  let t = i / point_count * Math.PI * 2 + Math.PI / 2
+  let t = i / POINT_COUNT * Math.PI * 2 + Math.PI / 2
   let r = radii[i]
   let offset = radius + BORDER
   let x = cos(t) * r * multiplier + offset
@@ -112,44 +118,60 @@ function getIndexWithOffset(start, offset) {
   let idx = start + offset
 
   if (idx < 0) {
-    idx = point_count + idx
+    idx = POINT_COUNT + idx
   } else {
-    idx = idx % point_count
+    idx = idx % POINT_COUNT
   }
 
   return idx
 }
 
 var max_r = 0
+var min_r = null
 
 function breakCircle(start, count, depth=0) {
-  start = start % point_count
+  start = start % POINT_COUNT
+  let new_count = Math.floor(count / 2) + 1
 
   //let midpoint = getIndexWithOffset(start, Math.floor(Math.random() * count / 2))
   let midpoint = getIndexWithOffset(start, Math.floor(count / 2))
 
-  var delta = 1 / point_count * radii[midpoint] / RANDOM_RADIUS_DIVISOR
-  radii[midpoint] += Math.random() * delta - delta * 2/3
+  //var delta = 1 / point_count * radii[midpoint] / RANDOM_RADIUS_DIVISOR
+  var start_radius = (radii[getIndexWithOffset(start, 0)] + radii[getIndexWithOffset(start, count * 2)]) / 2
+  var delta = (start_radius / RANDOM_RADIUS_DIVISOR) / (depth + 1) * ((depth % 2) * 2 - 1)
+  radii[midpoint] = start_radius + Math.random() * delta - delta * 2/3
 
   max_r = Math.max(Math.abs(radii[midpoint]), max_r)
+  if (min_r === null) {
+    min_r = Math.abs(radii[midpoint])
+  } else {
+    min_r = Math.min(Math.abs(radii[midpoint], min_r))
+  }
 
   if (DEBUG_OUTPUT && depth == MAX_DEPTH) {
-    var xy = getPoint(midpoint)
     strokeWeight(5)
+
+    var xy = getPoint(midpoint)
     stroke('red')
     point(xy[0], xy[1])
 
     xy = getPoint(start)
-    strokeWeight(5)
     stroke('green')
+    //point(xy[0], xy[1])
+
+    xy = getPoint(getIndexWithOffset(midpoint, new_count))
+    stroke('blue')
+    point(xy[0], xy[1])
+
+    xy = getPoint(getIndexWithOffset(midpoint, -new_count))
+    stroke('blue')
     point(xy[0], xy[1])
   }
 
-  let new_count = Math.floor(count / 2)
-  interpolateNewRadius(midpoint, 2)
-  interpolateNewRadius(midpoint, -2)
-  //interpolateNewRadius(midpoint, point_count / 32)
-  //interpolateNewRadius(midpoint, -point_count / 32)
+  if (SHOULD_INTERPOLATE) {
+    interpolateNewRadius(midpoint, new_count / INTERPOLATE_DIVISOR)
+    interpolateNewRadius(midpoint, -new_count / INTERPOLATE_DIVISOR)
+  }
 
   if (depth < MAX_DEPTH) {
     breakCircle(midpoint, new_count, depth + 1)
@@ -157,28 +179,53 @@ function breakCircle(start, count, depth=0) {
   }
 }
 
-let start_point = 0
+function randomizeCircle() {
+}
+
+var start_point = 0
+var max_depth = 0
 function draw() {
   beginSvg()
   fill(255, 255, 255, 32)
   rect(0, 0, windowWidth, windowHeight)
 
   noFill()
-  start_point = (start_point + 1) % point_count
+  start_point = (start_point + 1) % POINT_COUNT
   for (let m = 0; m < LAYERS; m++) {
     //start_point = Math.floor(Math.random() * point_count)
     max_r = 0
-    breakCircle(start_point, point_count)
+    prev_radii = [...radii]
+    breakCircle(0, POINT_COUNT)
+
+    increase = 1
+    for (let i = 0; i < radii.length; i++) {
+      if (radii[i] < prev_radii[i] + 1) {
+        increase = max(increase, prev_radii[i] - radii[i])
+      }
+    }
+    console.log(increase)
+    for (let i = 0; i < radii.length; i++) {
+      radii[i] += increase
+    }
+
     stroke(0)
     strokeWeight(0.1)
     beginShape()
     beginSvgPath()
-    for (let i = 0; i < point_count; i++) {
+    for (let i = 0; i < POINT_COUNT; i++) {
       var factor = 1
       if (SHOULD_EXPAND) {
         factor = (m + 1) / LAYERS
       }
-      let xy = getPoint(i, factor * radius / max_r)
+      var xy
+      xy = getPoint(i)
+      /*
+      if (DEBUG_OUTPUT) {
+        xy = getPoint(i, factor)
+      } else {
+        xy = getPoint(i, factor * radius / max_r)
+      }
+      */
       let x = xy[0]
       let y = xy[1]
       if (i == 0) {
