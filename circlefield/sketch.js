@@ -1,9 +1,10 @@
 
-let POINT_COUNT = 128
+let POINT_COUNT = 512
 let BORDER = 40
 let LAYERS = 200
 let SHOULD_LOOP = false
 let MIN_GAP = 1
+let RANDOMIZATION_AMT = 1
 
 let SVG_OUTPUT = true
 
@@ -50,7 +51,7 @@ function endSvgPath() {
 
 function endSvg() {
   SVG_OUTPUT_STRING += SVG_FOOTER
-  //save([SVG_OUTPUT_STRING], 'p5-svg.svg')
+  save([SVG_OUTPUT_STRING], 'circle-field')
 }
 
 function initializeCircle() {
@@ -80,7 +81,7 @@ function randomizeCircle() {
   console.log("Starting randomizeCircle")
   for (let x = 0; x < POINT_COUNT; x++) {
     for (let y = 0; y < LAYERS; y++) {
-      let delta = radius / LAYERS * Math.random() * (y / LAYERS)
+      let delta = radius / LAYERS * Math.random() * (y / LAYERS) * RANDOMIZATION_AMT
 
       for (let xx = -5; xx <= 5; xx++) {
         var dx
@@ -114,19 +115,30 @@ function draw() {
   randomizeCircle()
 
   for (let i = 0; i < LAYERS; i++) {
+    beginSvgPath()
     beginShape()
-    for (let j = 0; j < POINT_COUNT; j++) {
-      let t = j / POINT_COUNT * Math.PI * 2
-      let r = points[i][j]
+    for (let j = 0; j <= POINT_COUNT; j++) {
+      idx = j % POINT_COUNT
+      let t = idx / POINT_COUNT * Math.PI * 2
+      let r = points[i][idx]
       let offset = radius + BORDER
       let x = cos(t) * r + offset
       let y = sin(t) * r + offset
 
+      if (j == 0) {
+        svgMove(x, y)
+      } else {
+        svgLine(x, y)
+      }
+
       vertex(x, y)
     }
     endShape(CLOSE)
+    endSvgPath()
   }
 
-  if (!SHOULD_LOOP)
+  if (!SHOULD_LOOP) {
     noLoop()
+    endSvg()
+  }
 }
