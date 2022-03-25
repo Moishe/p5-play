@@ -1,15 +1,17 @@
-let LOOK_DISTANCE = 4
+let LOOK_DISTANCE = 18
 let RANDOM_WANDER = Math.PI / 12
-let BLUR_OPACITY = 4
-let BLUR_RADIUS = 3
-let POINT_OPACITY = 128
+let BLUR_OPACITY = 3
+let BLUR_RADIUS = 10
+let POINT_OPACITY = 32
 let CENTER_ACTORS = true
 let VISION_SWEEP = Math.PI / 3
 
 let MAX_ACTORS = 200
-let START_ACTORS = 1
+let START_ACTORS = 10
+let PUNCH_HOLE = true
+let HOLE_RADIUS = 150
 
-let SIMULATION_GENERATIONS = 1000
+let SIMULATION_GENERATIONS = 500
 
 let director
 
@@ -17,13 +19,17 @@ var old_paths = []
 
 var anyCreated = false
 class MoldDirector extends Director {
-  create(parent) {
+  create(parent, idx) {
     let actor = super.create(parent)
     actor.d = Math.random() * PI * 2
     actor.v = 1
     actor.lifetime = 2000
     actor.path = []
-    if (CENTER_ACTORS) {
+    if (PUNCH_HOLE) {
+      let t = idx / START_ACTORS * Math.PI * 2
+      actor.x = cos(t) * HOLE_RADIUS + windowWidth / 2
+      actor.y = sin(t) * HOLE_RADIUS + windowHeight / 2
+    } else if (CENTER_ACTORS) {
       actor.x = windowWidth / 2
       actor.y = windowHeight / 2
     } else {
@@ -117,6 +123,14 @@ function setup() {
   SVG_TRANSLATE = (210 * SVG_MM) / max(windowWidth, windowHeight)
   console.log(windowWidth, windowHeight)
   console.log(SVG_TRANSLATE)
+
+  if (PUNCH_HOLE) {
+    noStroke()
+    fill(0, 0, 0, 4)
+    for (let i = 0; i < HOLE_RADIUS * 2 - 40; i++) {
+      circle(windowWidth / 2, windowHeight / 2, i)
+    }
+  }
 }
 
 function addActorPath(path) {

@@ -14,7 +14,7 @@ let Director = class {
 
   initialize() {
     for (let i = 0; i < this.seed_actors; i++) {
-      this.actors[i] = this.create()
+      this.actors[i] = this.create(null, i)
     }
 
     for (let i = this.seed_actors; i < this.max_actors; i++) {
