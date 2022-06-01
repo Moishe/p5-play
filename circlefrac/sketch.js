@@ -1,11 +1,11 @@
-let RECURSION_DEPTH = 8
+let RECURSION_DEPTH = 9
 let POINT_COUNT = 2 ** RECURSION_DEPTH
 let BORDER = 40
-let LAYERS = 100
+let LAYERS = 200
 let MAX_DEPTH = RECURSION_DEPTH
 let RANDOM_RADIUS_DIVISOR = 8
 let SHOULD_LOOP = false
-let SHOULD_EXPAND = false
+let SHOULD_EXPAND = true
 let SHOULD_INTERPOLATE = true
 let INTERPOLATE_DIVISOR = 1
 
@@ -127,7 +127,6 @@ function getIndexWithOffset(start, offset) {
 }
 
 var max_r = 0
-var min_r = null
 
 function breakCircle(start, count, depth=0) {
   start = start % POINT_COUNT
@@ -138,15 +137,11 @@ function breakCircle(start, count, depth=0) {
 
   //var delta = 1 / point_count * radii[midpoint] / RANDOM_RADIUS_DIVISOR
   var start_radius = (radii[getIndexWithOffset(start, 0)] + radii[getIndexWithOffset(start, count * 2)]) / 2
-  var delta = (start_radius / RANDOM_RADIUS_DIVISOR) / (depth + 1) * ((depth % 2) * 2 - 1)
-  radii[midpoint] = start_radius + Math.random() * delta - delta * 2/3
+  var delta = (start_radius / RANDOM_RADIUS_DIVISOR)// / (depth + 1) * ((depth % 2) * 2 - 1)
+  delta = Math.random() * 10
+  radii[midpoint] = radii[midpoint] + delta - delta * 0.5
 
   max_r = Math.max(Math.abs(radii[midpoint]), max_r)
-  if (min_r === null) {
-    min_r = Math.abs(radii[midpoint])
-  } else {
-    min_r = Math.min(Math.abs(radii[midpoint], min_r))
-  }
 
   if (DEBUG_OUTPUT && depth == MAX_DEPTH) {
     strokeWeight(5)
@@ -197,17 +192,6 @@ function draw() {
     prev_radii = [...radii]
     breakCircle(0, POINT_COUNT)
 
-    increase = 1
-    for (let i = 0; i < radii.length; i++) {
-      if (radii[i] < prev_radii[i] + 1) {
-        increase = max(increase, prev_radii[i] - radii[i])
-      }
-    }
-    console.log(increase)
-    for (let i = 0; i < radii.length; i++) {
-      radii[i] += increase
-    }
-
     stroke(0)
     strokeWeight(0.1)
     beginShape()
@@ -218,14 +202,11 @@ function draw() {
         factor = (m + 1) / LAYERS
       }
       var xy
-      xy = getPoint(i)
-      /*
       if (DEBUG_OUTPUT) {
         xy = getPoint(i, factor)
       } else {
         xy = getPoint(i, factor * radius / max_r)
       }
-      */
       let x = xy[0]
       let y = xy[1]
       if (i == 0) {

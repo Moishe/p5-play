@@ -1,12 +1,16 @@
 
 let POINT_COUNT = 512
 let BORDER = 40
-let LAYERS = 200
+let LAYERS = 512
 let SHOULD_LOOP = false
-let MIN_GAP = 1
-let RANDOMIZATION_AMT = 1
+let MIN_GAP = 0
+let RANDOMIZATION_AMT = 12
+let SOI = 30
 
-let SVG_OUTPUT = true
+let MUTATE_ALL_POINTS = false
+let MUTATE_POINT_COUNT = 1024
+
+let SAVE_SVG = false
 
 let SVG_MM = 3.543307
 
@@ -51,7 +55,9 @@ function endSvgPath() {
 
 function endSvg() {
   SVG_OUTPUT_STRING += SVG_FOOTER
-  save([SVG_OUTPUT_STRING], 'circle-field')
+  if (SAVE_SVG) {
+    save([SVG_OUTPUT_STRING], 'circle-field')
+  }
 }
 
 function initializeCircle() {
@@ -77,29 +83,40 @@ function setup() {
   initializeCircle()
 }
 
+function mutatePoint(x, y, delta) {
+  for (let xx = -SOI; xx <= SOI; xx++) {
+    var dx
+    if (x + xx < 0) {
+      dx = POINT_COUNT + x + xx
+    } else {
+      dx = (x + xx) % POINT_COUNT
+    }
+    for (let dy = max(0, y - SOI); dy <= min(LAYERS - 1, y + SOI + 1); dy++) {
+      let amt = (1 + sqrt(xx ** 2 + (y - dy) ** 2))
+
+      let innerPoint = dy > 0 ? points[dy - 1][dx] : 1
+      points[dy][dx] = max(points[dy][dx] + delta / amt, innerPoint + MIN_GAP)
+    }
+  }
+}
+
 function randomizeCircle() {
   console.log("Starting randomizeCircle")
-  for (let x = 0; x < POINT_COUNT; x++) {
-    for (let y = 0; y < LAYERS; y++) {
-      let delta = radius / LAYERS * Math.random() * (y / LAYERS) * RANDOMIZATION_AMT
+  if (MUTATE_ALL_POINTS) {
+    for (let x = 0; x < POINT_COUNT; x++) {
+      for (let y = 0; y < LAYERS; y++) {
+        let delta = radius / LAYERS * Math.random() * (y / LAYERS) * RANDOMIZATION_AMT
 
-      for (let xx = -5; xx <= 5; xx++) {
-        var dx
-        if (x + xx < 0) {
-          dx = POINT_COUNT + x + xx
-        } else {
-          dx = (x + xx) % POINT_COUNT
-        }
-        for (let dy = max(0, y - 5); dy <= min(LAYERS - 1, y + 6); dy++) {
-          var amt = 1
-          if (dx != x || dy != y) {
-            amt = sqrt(xx ** 2 + (y - dy) ** 2)
-          }
-
-          let innerPoint = dy > 0 ? points[dy - 1][dx] : 1
-          points[dy][dx] = max(points[dy][dx] + delta / amt, innerPoint + MIN_GAP)
-        }
+        mutatePoint(x, y, delta)
       }
+    }
+  } else {
+    for (let i = 0; i < MUTATE_POINT_COUNT; i++) {
+      let x = Math.floor(Math.random() * POINT_COUNT)
+      let y = Math.floor(Math.random() * LAYERS)
+
+      let delta = radius / LAYERS * Math.random() * (y / LAYERS) * RANDOMIZATION_AMT
+      mutatePoint(x, y, delta)
     }
   }
   console.log("Done with randomizeCircle")
@@ -114,13 +131,19 @@ function draw() {
 
   randomizeCircle()
 
+  let max_r = max(points[LAYERS - 1])
+  console.log(max_r)
+  let normalization_r = radius / max_r
+
+  strokeWeight(0.3)
+
   for (let i = 0; i < LAYERS; i++) {
     beginSvgPath()
     beginShape()
     for (let j = 0; j <= POINT_COUNT; j++) {
       idx = j % POINT_COUNT
       let t = idx / POINT_COUNT * Math.PI * 2
-      let r = points[i][idx]
+      let r = points[i][idx] * normalization_r
       let offset = radius + BORDER
       let x = cos(t) * r + offset
       let y = sin(t) * r + offset
