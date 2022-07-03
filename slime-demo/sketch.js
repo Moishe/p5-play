@@ -5,12 +5,15 @@ const ACTOR_LOCATIONS = [
 ]
 const DIRECTION_RESOLUTION = 8
 const BOARD_SIZE = 128
+const VISIBLE_BUFFER = 2
+const MAX_ZOOM = 16
 
 // globals which can be changed by the user
 var randomization_freq = 0.5
-var visible_size = 16
+var visible_size = MAX_ZOOM
 var focus_idx = 0
 var single_step = true
+var zoom_direction = 0
 
 // globals which are computed for each render
 var scale
@@ -70,17 +73,32 @@ function setup() {
   }
 }
 
-function draw_location(x, y) {
-  stroke(0)
-  strokeWeight(0)
-  fill(get_board_value(x,y) * 255)
+function rect_offset(x, y) {
+  x -= x_offset
+  y -= y_offset
   rect(x * scale, y * scale, scale - 1, scale - 1)
 }
 
+function draw_location(x, y) {
+  if (x >= x_offset &&
+    y >= y_offset) {
+    stroke(0)
+    strokeWeight(0)
+    fill(get_board_value(x, y) * 255)
+    rect_offset(x, y)
+  }
+}
+
+function draw_outline(x, y, s, sw, c) {
+  if (x >= x_offset &&
+    y >= y_offset) {
+  }
+}
+
 function draw_board() {
-  for (var x = 0; x < BOARD_SIZE; x++) {
-    for (var y = 0; y < BOARD_SIZE; y++) {
-      draw_location(x,y)
+  for (var x = 0; x < visible_size; x++) {
+    for (var y = 0; y < visible_size; y++) {
+      draw_location(x + x_offset, y + y_offset)
     }
   }
 }
@@ -104,14 +122,11 @@ function draw_actors() {
     stroke('red')
     strokeWeight(1)
     noFill()
-    rect(actor.x * scale,
-         actor.y * scale,
-         scale - 1,
-         scale - 1)
+    rect_offset(actor.x, actor.y)
 
     let v1 = createVector(
-      actor.x * scale + scale / 2,
-      actor.y * scale + scale / 2)
+      (actor.x - x_offset) * scale + scale / 2,
+      (actor.y - y_offset) * scale + scale / 2)
     let size = Math.sqrt((scale / 2) * (scale / 2) * 2)
     let v2 = createVector(
       size,
@@ -143,13 +158,11 @@ function process_actors() {
           look_y < 0 || look_y >= BOARD_SIZE) {
         continue
       }
+
       stroke('green')
       strokeWeight(1)
       noFill()
-      rect(look_x * scale,
-           look_y * scale,
-           scale - 1,
-           scale - 1)
+      rect_offset(look_x, look_y)
 
       var look_v = get_board_value(look_x, look_y)
       if (look_v > brightest) {
@@ -187,13 +200,36 @@ function add_actor() {
   actors.push(actor)
 }
 
+function calc_offset(center) {
+    // visible_size should always be an even number (we increment / decrement by 2)
+    var half_visible = floor(visible_size) / 2
+    var offset = max(0, min(center - half_visible, BOARD_SIZE - visible_size))
+    return offset
+}
+
+function calc_incremental_offset(cur_offset, new_center) {
+  if (new_center < (cur_offset + VISIBLE_BUFFER)) {
+    cur_offset -= 1
+  } else if (new_center >= (cur_offset + visible_size - VISIBLE_BUFFER)) {
+    cur_offset += 1
+  }
+
+  return max(0, min(BOARD_SIZE - visible_size - 1, cur_offset))
+}
+
 function draw() {
   // set globals
-  scale = min(window.width, window.height) / BOARD_SIZE
+  visible_size = min(BOARD_SIZE, max(MAX_ZOOM, visible_size + zoom_direction))
+
+  scale = min(window.width, window.height) / visible_size
   var focus_actor = actors[focus_idx]
-  x_offset = calc_offset(focus_actor.x)
-  y_offset = calc_offset(focus_actor.y)
-  y_offset = max(0, focus_actor.y - floor(visible_size / 2))
+  if (!x_offset || !y_offset) {
+    x_offset = calc_offset(focus_actor.x)
+    y_offset = calc_offset(focus_actor.y)
+  } else {
+    x_offset = calc_incremental_offset(x_offset, focus_actor.x)
+    y_offset = calc_incremental_offset(y_offset, focus_actor.y)
+  }
 
   background(220);
   draw_board()
@@ -207,11 +243,8 @@ function draw() {
 
 function keyPressed() {
   console.log(keyCode)
-  if (keyCode == 32) {
-    loop()
-  } else if (keyCode == 84) { // 't'
+  if (keyCode == 84) { // 't'
     single_step = !single_step
-    loop()
   } else if (keyCode == 65) { // 'a'
     add_actor()
   } else if (keyCode == 82) { // 'r'
@@ -220,9 +253,15 @@ function keyPressed() {
 
   } else if (keyCode == 73) { // 'i'
     // zoom in
-    visible_size = max(5, visible_size - 1)
+    visible_size = max(6, visible_size - 2)
   } else if (keyCode == 79) { // 'o'
-    visible_size = min(BOARD_SIZE, visible_size + 1)
+    visible_size = min(BOARD_SIZE, visible_size + 2)
+  } else if (keyCode == 48) { // '0'
+    zoom_direction = -2
+  } else if (keyCode == 49) { // '1'
+    zoom_direction = 2
   }
+
+  loop()
 }
 
