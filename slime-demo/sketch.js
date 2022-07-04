@@ -4,12 +4,13 @@ const ACTOR_LOCATIONS = [
   [0.5, 0.5]
 ]
 const DIRECTION_RESOLUTION = 8
+const LOOK_DISTANCE = 1
 const BOARD_SIZE = 128
 const VISIBLE_BUFFER = 2
 const MAX_ZOOM = 16
 
 // globals which can be changed by the user
-var randomization_freq = 0.5
+var randomization_freq = 0
 var visible_size = MAX_ZOOM
 var focus_idx = 0
 var single_step = true
@@ -57,6 +58,15 @@ function create_actor(loc) {
   return actor
 }
 
+function initialize_board() {
+  board = []
+  for (var x = 0; x < BOARD_SIZE; x++) {
+    for (var y = 0; y < BOARD_SIZE; y++) {
+      board.push(noise(x / 10, y / 10))
+    }
+  }
+}
+
 function setup() {
   createCanvas(800, 800);
 
@@ -66,11 +76,7 @@ function setup() {
     actors.push(actor)
   }
 
-  for (var x = 0; x < BOARD_SIZE; x++) {
-    for (var y = 0; y < BOARD_SIZE; y++) {
-      board.push(noise(x / 10, y / 10))
-    }
-  }
+  initialize_board()
 }
 
 function rect_offset(x, y) {
@@ -146,13 +152,11 @@ function process_actors() {
     var y = actor.y + 0.5
 
     var new_dir = actor.direction
-    var new_x = actor.x
-    var new_y = actor.y
     var brightest = 0
     for (var i = -1; i <= 1; i++) {
       var look_d = actor.direction + i
-      var look_x = Math.floor(x + cos(rad_from_dir(look_d)) * sqrt(2))
-      var look_y = Math.floor(y + sin(rad_from_dir(look_d)) * sqrt(2))
+      var look_x = Math.floor(x + cos(rad_from_dir(look_d)) * sqrt(2) * LOOK_DISTANCE)
+      var look_y = Math.floor(y + sin(rad_from_dir(look_d)) * sqrt(2) * LOOK_DISTANCE)
 
       if (look_x < 0 || look_x >= BOARD_SIZE ||
           look_y < 0 || look_y >= BOARD_SIZE) {
@@ -168,21 +172,15 @@ function process_actors() {
       if (look_v > brightest) {
         brightest = look_v
         new_dir = look_d
-        new_x = look_x
-        new_y = look_y
       }
     }
 
-    if (actor.x == new_x && actor.y == new_y) {
-      actor.direction += 1
-    } else {
-      actor.direction = new_dir
-      actor.x = new_x
-      actor.y = new_y
+    actor.direction = new_dir
+    actor.x = Math.floor(x + cos(rad_from_dir(new_dir)) * sqrt(2))
+    actor.y = Math.floor(y + sin(rad_from_dir(new_dir)) * sqrt(2))
 
-      if (random() < randomization_freq) {
-        actor.direction = floor(random(0, DIRECTION_RESOLUTION))
-      }
+    if (random() < randomization_freq) {
+      actor.direction = floor(random(0, DIRECTION_RESOLUTION))
     }
 
     inc_board_value(actor.x, actor.y)
@@ -248,18 +246,26 @@ function keyPressed() {
   } else if (keyCode == 65) { // 'a'
     add_actor()
   } else if (keyCode == 82) { // 'r'
-
+    if (keyIsDown(SHIFT)) {
+      randomization_freq -= 0.05
+    } else {
+      randomization_freq += 0.05
+    }
   } else if (keyCode == 78) { // 'n'
 
   } else if (keyCode == 73) { // 'i'
     // zoom in
     visible_size = max(6, visible_size - 2)
+    zoom_direction = 0
   } else if (keyCode == 79) { // 'o'
     visible_size = min(BOARD_SIZE, visible_size + 2)
+    zoom_direction = 0
   } else if (keyCode == 48) { // '0'
     zoom_direction = -2
   } else if (keyCode == 49) { // '1'
     zoom_direction = 2
+  } else if (keyCode == 67) { // 'c'
+    initialize_board()
   }
 
   loop()
