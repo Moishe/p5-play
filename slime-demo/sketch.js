@@ -18,15 +18,15 @@ const MIN_FATBITS = 32
   */
 
 var parameters = {
-  randomization_amt: [0.1, 'r', (param) => inc_param(param, 0.01, 0, 100, 100)],
+  randomization_amt: [0.1, 'r', (param) => inc_param(param, 0.05, 0, 100, 100)],
   add_actor: [1, 'a', add_actor],
   visible_size: [MAX_ZOOM, 'i', (param) => exp_param(param, 1.5, MAX_ZOOM, BOARD_SIZE)],
   single_step: [true, 't', toggle_param],
   fast_mode: [false, 'f', (param) => { background(0); return toggle_param(param) }],
   look_distance: [3, 'd', (param) => inc_param(param, 1, 0, 25)],
-  look_radians: [Math.PI / 2, 'v', (param) => inc_param(param, 0.1, 0, Math.PI * 2)],
+  look_radians: [1.5, 'v', (param) => inc_param(param, 0.1, 0, Math.PI * 2, 100)],
   look_resolution: [3, 's', (param) => inc_param(param, 2, 3, 15)],
-  trail_strength: [0.1, 'g', (param) => inc_param(param, 0.01, 0.01, 1)],
+  trail_strength: [0.1, 'g', (param) => inc_param(param, 0.05, 0.05, 1, 100)],
   clear_board: ['-', 'c', () => { background(0); initialize_board() }],
   reset_board: ['-', 'x', () => { create_initial_actors(); parameters['add_actor'][0] = 1; background(0); initialize_board() }],
   zoom_all_in: ['-', '0', () => { zoom_direction = 0.9 }],
