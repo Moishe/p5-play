@@ -6,3 +6,21 @@ html, body {
 canvas {
   display: block;
 }
+
+.fleft,
+.label,
+.data,
+.shortcut {
+  float: left;
+}
+
+.label {
+  width: 150px
+}
+
+.label,
+.data,
+.shortcut {
+  margin: 10px;
+  font-family: monospace;
+}
